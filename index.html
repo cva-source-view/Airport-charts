@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Charts">
+<meta name="theme-color" content="#08080f">
+<title>Charts</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080f;
+    --surface: #0f1018;
+    --surface2: #15161f;
+    --border: #1f2035;
+    --border2: #2a2c45;
+    --accent: #5c6fff;
+    --accent2: #ff5c87;
+    --yellow: #ffd166;
+    --green: #06d6a0;
+    --text: #d8daf5;
+    --muted: #565870;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 20px 0;
+    padding-top: calc(20px + env(safe-area-inset-top));
+  }
+  .brand-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 4px;
+    color: white;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .cycle-badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    background: rgba(92,111,255,0.12);
+    border: 1px solid rgba(92,111,255,0.3);
+    border-radius: 4px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* Search */
+  .search-wrap { padding: 16px 20px; }
+  .search-box { display: flex; gap: 10px; }
+  .search-input-wrap { flex: 1; position: relative; }
+  .search-icon {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted); font-size: 15px; pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    padding: 14px 16px 14px 42px;
+    outline: none;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .search-input::placeholder { color: var(--muted); font-size: 13px; letter-spacing: 2px; }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(92,111,255,0.15);
+  }
+  .search-btn {
+    padding: 14px 20px;
+    background: var(--accent);
+    border: none; border-radius: 12px;
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 2px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .search-btn:active { transform: scale(0.96); background: #4a5ce0; }
+
+  /* Recent pills */
+  .quick-wrap { padding: 0 20px 18px; }
+  .quick-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    margin-bottom: 9px;
+  }
+  .quick-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .quick-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 50px; color: var(--text);
+    cursor: pointer; transition: all 0.15s; letter-spacing: 1px;
+  }
+  .quick-pill:active { background: rgba(92,111,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .divider { height: 1px; background: var(--border); margin: 0 20px 20px; }
+
+  /* States */
+  .state-msg {
+    text-align: center; padding: 60px 30px;
+  }
+  .state-icon { font-size: 52px; margin-bottom: 16px; opacity: 0.25; }
+  .state-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 3px;
+    color: var(--text); margin-bottom: 8px; opacity: 0.5;
+  }
+  .state-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted); letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  .loading { display: none; text-align: center; padding: 40px; }
+  .loading.active { display: block; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 2px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* Airport info bar */
+  .airport-info {
+    display: none;
+    margin: 0 20px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 16px;
+    animation: slidedown 0.3s ease;
+  }
+  .airport-info.active { display: block; }
+  @keyframes slidedown {
+    from { opacity:0; transform:translateY(-8px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .airport-info-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 12px;
+  }
+  .airport-icao {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px; letter-spacing: 4px; color: white; line-height: 1;
+  }
+  .airport-name {
+    font-size: 12px; color: var(--muted); margin-top: 2px;
+    font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+  }
+  .chart-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted); text-align: right;
+  }
+  .chart-count strong {
+    display: block; font-size: 26px; color: var(--yellow); font-weight: 500;
+  }
+  .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-tab {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 5px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .filter-tab.active {
+    background: rgba(92,111,255,0.15);
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  /* Chart list */
+  .charts-container { padding: 0 20px; }
+  .category-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin: 20px 0 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .category-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: block;
+    animation: cardin 0.3s ease both;
+    transition: border-color 0.15s;
+  }
+  @keyframes cardin {
+    from { opacity:0; transform:translateY(8px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .chart-card:active { border-color: var(--accent); transform: scale(0.99); }
+  .chart-card-inner {
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .chart-type-badge {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 12px; letter-spacing: 0.5px;
+    text-align: center; line-height: 1.1; flex-shrink: 0;
+  }
+  .badge-IAP { background: rgba(92,111,255,0.15); color: var(--accent); border: 1px solid rgba(92,111,255,0.3); }
+  .badge-DP  { background: rgba(6,214,160,0.12); color: var(--green); border: 1px solid rgba(6,214,160,0.25); }
+  .badge-STAR{ background: rgba(255,209,102,0.12); color: var(--yellow); border: 1px solid rgba(255,209,102,0.25); }
+  .badge-APD { background: rgba(255,92,135,0.12); color: var(--accent2); border: 1px solid rgba(255,92,135,0.25); }
+  .badge-HOT { background: rgba(255,92,135,0.12); color: var(--accent2); border: 1px solid rgba(255,92,135,0.25); }
+  .badge-MIN { background: rgba(255,209,102,0.12); color: var(--yellow); border: 1px solid rgba(255,209,102,0.25); }
+  .badge-OTH { background: rgba(86,88,112,0.2); color: var(--muted); border: 1px solid var(--border); }
+  .chart-info { flex: 1; min-width: 0; }
+  .chart-name {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 3px; letter-spacing: 0.2px;
+  }
+  .chart-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
+  }
+  .chart-arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    margin: 0 20px 20px;
+    background: rgba(255,92,135,0.08);
+    border: 1px solid rgba(255,92,135,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--accent2); letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+  .error-msg.active { display: block; }
+
+  /* PDF Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92); z-index: 500;
+    flex-direction: column;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+    display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+  }
+  .modal-back {
+    background: none; border: none;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    cursor: pointer; padding: 4px;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .modal-title {
+    flex: 1; font-size: 12px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: 'DM Mono', monospace; letter-spacing: 0.3px;
+  }
+  .modal-open-btn {
+    background: var(--accent); border: none;
+    border-radius: 8px; color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; padding: 8px 14px;
+    cursor: pointer; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .modal-body { flex: 1; overflow: hidden; position: relative; }
+  .modal-body iframe { width: 100%; height: 100%; border: none; background: white; }
+  .modal-loading {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--bg); gap: 16px;
+  }
+  .modal-loading p {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--muted); letter-spacing: 1px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .modal-note {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--muted); text-align: center; margin-top: 8px;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand-title">CHARTS</div>
+  <div class="brand-sub">FAA Terminal Procedures</div>
+  <div><span class="cycle-badge" id="cycleBadge">LOADING CYCLE…</span></div>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <span class="search-icon">✈</span>
+      <input class="search-input" id="airportInput"
+        placeholder="ICAO / FAA ID"
+        maxlength="4" autocomplete="off"
+        autocorrect="off" spellcheck="false">
+    </div>
+    <button class="search-btn" onclick="searchCharts()">PULL</button>
+  </div>
+</div>
+
+<div class="quick-wrap">
+  <div class="quick-label">Recent</div>
+  <div class="quick-pills" id="recentPills"></div>
+</div>
+
+<div class="divider"></div>
+
+<div class="state-msg" id="emptyState">
+  <div class="state-icon">🗺</div>
+  <div class="state-title">ENTER AN AIRPORT</div>
+  <div class="state-sub">Type any US ICAO or FAA ID<br>e.g. KSTL · KORD · KLAX · KSFO</div>
+</div>
+
+<div class="loading" id="loadingState">
+  <div class="spinner"></div>
+  <div class="loading-text">FETCHING CHARTS…</div>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="airport-info" id="airportInfo">
+  <div class="airport-info-top">
+    <div>
+      <div class="airport-icao" id="infoICAO"></div>
+      <div class="airport-name" id="infoName"></div>
+    </div>
+    <div class="chart-count">
+      <strong id="infoCount">0</strong>
+      CHARTS
+    </div>
+  </div>
+  <div class="filter-tabs" id="filterTabs"></div>
+</div>
+
+<div class="charts-container" id="chartsContainer"></div>
+
+<!-- PDF Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-header">
+    <button class="modal-back" onclick="closeModal()">← BACK</button>
+    <div class="modal-title" id="modalTitle"></div>
+    <button class="modal-open-btn" id="modalOpenBtn">OPEN PDF</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-loading" id="modalLoading">
+      <div class="spinner"></div>
+      <p>LOADING CHART…</p>
+      <div class="modal-note">If it doesn't load, tap OPEN PDF</div>
+    </div>
+    <iframe id="modalFrame" onload="hideModalLoading()"></iframe>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let allCharts = [];
+let currentCycle = '';
+let xmlDoc = null;
+let xmlLoading = false;
+let xmlReady = false;
+const recents = JSON.parse(localStorage.getItem('chart_recents2') || '[]');
+
+const CAT_ORDER  = ['APD','IAP','STAR','DP','MIN','HOT','OTH'];
+const CAT_LABELS = { APD:'Airport Diagrams', IAP:'Instrument Approaches', STAR:'Arrivals (STAR)', DP:'Departure Procedures', MIN:'Minimums', HOT:'Hot Spots', OTH:'Other' };
+
+// ─── Classify charts ─────────────────────────────────────────────────────────
+function classifyChart(name, code) {
+  const n = (name||'').toUpperCase();
+  const c = (code||'').toUpperCase();
+  if (c === 'APD' || n.includes('AIRPORT DIAGRAM')) return 'APD';
+  if (c === 'IAP' || n.match(/\b(ILS|RNAV|VOR|NDB|LOC|LDA|SDF|GPS|TACAN|GLS|CONVERGING)\b/)) return 'IAP';
+  if (c === 'STAR' || n.includes('ARRIVAL')) return 'STAR';
+  if (c === 'DP'   || n.includes('DEPARTURE') || c.includes('DP')) return 'DP';
+  if (c === 'MIN'  || n.includes('MINIMUMS') || n.includes('ALTERNATE') || n.includes('TAKEOFF')) return 'MIN';
+  if (c === 'HOT'  || n.includes('HOT SPOT')) return 'HOT';
+  return 'OTH';
+}
+
+// ─── Fetch + parse FAA XML ────────────────────────────────────────────────────
+// The FAA publishes a public XML index each 28-day cycle at nfdc.faa.gov.
+// PDFs are served from aeronav.faa.gov/d-tpp/{cycle}/{pdf_name}
+// Both are public, no auth, CORS-open for GET requests.
+async function loadXML() {
+  if (xmlReady || xmlLoading) return;
+  xmlLoading = true;
+  try {
+    const res = await fetch('https://nfdc.faa.gov/webContent/dtpp/current.xml');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const parser = new DOMParser();
+    xmlDoc = parser.parseFromString(text, 'text/xml');
+    // Extract cycle number from root element
+    const root = xmlDoc.documentElement;
+    currentCycle = root.getAttribute('cycle') || root.getAttribute('edition') || '';
+    document.getElementById('cycleBadge').textContent = currentCycle ? `CYCLE ${currentCycle}` : 'FAA CHARTS';
+    xmlReady = true;
+  } catch (e) {
+    document.getElementById('cycleBadge').textContent = 'FAA CHARTS';
+    throw new Error('Could not load FAA chart index. Check your connection and try again.');
+  } finally {
+    xmlLoading = false;
+  }
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+async function searchCharts() {
+  const raw = document.getElementById('airportInput').value.trim().toUpperCase();
+  if (!raw) return;
+
+  setLoading(true);
+  hideError();
+  hideResults();
+
+  try {
+    // Load XML if not already loaded
+    if (!xmlReady) await loadXML();
+
+    // The XML structure: <digital_tpp> → <state_code> → <city_name> → <airport_name apt_ident="KXXX"> → <record>
+    // apt_ident is the FAA identifier (usually matches ICAO for US airports)
+    let airportEl = xmlDoc.querySelector(`airport_name[apt_ident="${raw}"]`);
+
+    // Some airports use 3-letter FAA IDs — try stripping K prefix
+    if (!airportEl && raw.startsWith('K') && raw.length === 4) {
+      const faaId = raw.slice(1);
+      airportEl = xmlDoc.querySelector(`airport_name[apt_ident="${faaId}"]`);
+    }
+
+    if (!airportEl) {
+      throw new Error(`NO_CHARTS`);
+    }
+
+    const aptName = airportEl.getAttribute('name') || '';
+    const records = airportEl.querySelectorAll('record');
+
+    if (!records.length) throw new Error('NO_CHARTS');
+
+    allCharts = Array.from(records).map(r => {
+      const chartName = r.querySelector('chart_name')?.textContent || '';
+      const chartCode = r.querySelector('chart_code')?.textContent || '';
+      const pdfName   = r.querySelector('pdf_name')?.textContent || '';
+      const useState  = r.querySelector('use_state')?.textContent || '';
+      return {
+        name: chartName,
+        code: chartCode,
+        pdf: pdfName,
+        useState,
+        _type: classifyChart(chartName, chartCode)
+      };
+    });
+
+    addRecent(raw);
+    setLoading(false);
+    renderResults(raw, aptName, allCharts);
+
+  } catch (err) {
+    setLoading(false);
+    if (err.message === 'NO_CHARTS') {
+      showError(`No charts found for "${raw}".\n\nMake sure you're using the FAA/ICAO identifier (e.g. KSTL, KORD, KLAX). International airports are not included — FAA charts cover US airports only.`);
+    } else {
+      showError(err.message || 'Unknown error fetching charts.');
+    }
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderResults(icao, aptName, charts) {
+  document.getElementById('infoICAO').textContent = icao;
+  document.getElementById('infoName').textContent = aptName;
+  document.getElementById('infoCount').textContent = charts.length;
+
+  const types = ['ALL', ...CAT_ORDER.filter(t => charts.some(c => c._type === t))];
+  document.getElementById('filterTabs').innerHTML = types.map(t =>
+    `<button class="filter-tab ${t==='ALL'?'active':''}" onclick="setFilter('${t}', this)">${t==='ALL'?`ALL (${charts.length})`:t}</button>`
+  ).join('');
+
+  document.getElementById('airportInfo').classList.add('active');
+  renderChartList(charts, 'ALL');
+}
+
+function setFilter(type, btn) {
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChartList(allCharts, type);
+}
+
+function renderChartList(charts, filter) {
+  const filtered = filter === 'ALL' ? charts : charts.filter(c => c._type === filter);
+  const container = document.getElementById('chartsContainer');
+  if (!filtered.length) {
+    container.innerHTML = '<div class="state-msg"><div class="state-icon">📄</div><div class="state-title">NONE IN CATEGORY</div></div>';
+    return;
+  }
+  const grouped = {};
+  filtered.forEach(c => { (grouped[c._type] = grouped[c._type]||[]).push(c); });
+  const orderedTypes = filter === 'ALL' ? CAT_ORDER.filter(t => grouped[t]) : [filter];
+
+  let html = '';
+  orderedTypes.forEach(type => {
+    if (!grouped[type]) return;
+    html += `<div class="category-label">${CAT_LABELS[type]||type}</div>`;
+    grouped[type].forEach((c, i) => {
+      const pdfUrl = currentCycle
+        ? `https://aeronav.faa.gov/d-tpp/${currentCycle}/${c.pdf}`
+        : `https://aeronav.faa.gov/d-tpp/${c.pdf}`;
+      const safeUrl = encodeURIComponent(pdfUrl);
+      const safeName = c.name.replace(/'/g, "\\'");
+      html += `
+        <div class="chart-card" style="animation-delay:${Math.min(i,8)*30}ms" onclick="openChart('${safeUrl}','${safeName}')">
+          <div class="chart-card-inner">
+            <div class="chart-type-badge badge-${type}">${type}</div>
+            <div class="chart-info">
+              <div class="chart-name">${c.name}</div>
+              <div class="chart-meta">${c.code}${c.useState?' · '+c.useState:''}</div>
+            </div>
+            <div class="chart-arrow">›</div>
+          </div>
+        </div>`;
+    });
+  });
+  container.innerHTML = html;
+}
+
+// ─── PDF Modal ────────────────────────────────────────────────────────────────
+function openChart(encodedUrl, name) {
+  const url = decodeURIComponent(encodedUrl);
+  document.getElementById('modalTitle').textContent = name;
+  document.getElementById('modalOpenBtn').onclick = () => window.open(url, '_blank');
+  document.getElementById('modalLoading').style.display = 'flex';
+  // Use Google Docs viewer — works well on iOS Safari for PDFs
+  document.getElementById('modalFrame').src =
+    `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  document.getElementById('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideModalLoading() {
+  document.getElementById('modalLoading').style.display = 'none';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  document.getElementById('modalFrame').src = '';
+  document.body.style.overflow = '';
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('loadingState').classList.toggle('active', on);
+  document.getElementById('emptyState').style.display = 'none';
+}
+
+function hideResults() {
+  document.getElementById('airportInfo').classList.remove('active');
+  document.getElementById('chartsContainer').innerHTML = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('active');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('active');
+}
+
+// ─── Recents ──────────────────────────────────────────────────────────────────
+function addRecent(icao) {
+  const idx = recents.indexOf(icao);
+  if (idx !== -1) recents.splice(idx, 1);
+  recents.unshift(icao);
+  if (recents.length > 6) recents.pop();
+  localStorage.setItem('chart_recents2', JSON.stringify(recents));
+  renderRecents();
+}
+
+function quickSearch(icao) {
+  document.getElementById('airportInput').value = icao;
+  searchCharts();
+}
+
+function renderRecents() {
+  const el = document.getElementById('recentPills');
+  el.innerHTML = recents.length
+    ? recents.map(a => `<button class="quick-pill" onclick="quickSearch('${a}')">${a}</button>`).join('')
+    : `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">none yet</span>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('airportInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); searchCharts(); }
+});
+
+renderRecents();
+
+// Pre-fetch the FAA XML in background so the first search is instant
+loadXML().catch(() => {}); // silent — error handled at search time
+</script>
+</body>
+</html>
