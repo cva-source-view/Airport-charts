@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Charts">
+<meta name="theme-color" content="#08080f">
+<title>Charts</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080f;
+    --surface: #0f1018;
+    --surface2: #15161f;
+    --border: #1f2035;
+    --border2: #2a2c45;
+    --accent: #5c6fff;
+    --accent2: #ff5c87;
+    --yellow: #ffd166;
+    --green: #06d6a0;
+    --text: #d8daf5;
+    --muted: #565870;
+    --glow-blue: 0 0 30px rgba(92,111,255,0.25);
+    --glow-pink: 0 0 20px rgba(255,92,135,0.2);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 20px 0;
+    padding-top: calc(20px + env(safe-area-inset-top));
+    position: relative;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .brand-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 4px;
+    color: white;
+    line-height: 1;
+  }
+
+  .brand-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .cycle-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    background: rgba(92,111,255,0.12);
+    border: 1px solid rgba(92,111,255,0.3);
+    border-radius: 4px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* Search */
+  .search-wrap {
+    padding: 16px 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .search-box {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .search-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 14px 16px 14px 44px;
+    outline: none;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .search-input::placeholder {
+    color: var(--muted);
+    letter-spacing: 2px;
+    font-size: 14px;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--glow-blue);
+  }
+
+  .search-btn {
+    padding: 14px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .search-btn:active { transform: scale(0.96); background: #4a5ce0; }
+
+  /* Quick access pills */
+  .quick-wrap {
+    padding: 0 20px 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .quick-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .quick-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .quick-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 50px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+
+  .quick-pill:active {
+    background: rgba(92,111,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 20px 20px;
+  }
+
+  /* State messages */
+  .state-msg {
+    text-align: center;
+    padding: 60px 30px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .state-icon {
+    font-size: 52px;
+    margin-bottom: 16px;
+    opacity: 0.25;
+  }
+
+  .state-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+
+  .state-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .loading.active { display: block; }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* Airport info bar */
+  .airport-info {
+    display: none;
+    margin: 0 20px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    z-index: 10;
+    animation: slidedown 0.3s ease;
+  }
+
+  .airport-info.active { display: block; }
+
+  @keyframes slidedown {
+    from { opacity:0; transform:translateY(-8px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .airport-info-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .airport-icao {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 4px;
+    color: white;
+    line-height: 1;
+  }
+
+  .chart-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .chart-count strong {
+    display: block;
+    font-size: 22px;
+    color: var(--yellow);
+    font-weight: 500;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .filter-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .filter-tab.active {
+    background: rgba(92,111,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Chart list */
+  .charts-container {
+    padding: 0 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .category-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .category-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    animation: cardin 0.3s ease both;
+  }
+
+  .chart-card:nth-child(1) { animation-delay: 0ms; }
+  .chart-card:nth-child(2) { animation-delay: 30ms; }
+  .chart-card:nth-child(3) { animation-delay: 60ms; }
+  .chart-card:nth-child(4) { animation-delay: 90ms; }
+  .chart-card:nth-child(5) { animation-delay: 120ms; }
+
+  @keyframes cardin {
+    from { opacity:0; transform:translateY(10px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .chart-card:active {
+    transform: scale(0.98);
+    border-color: var(--accent);
+  }
+
+  .chart-card-inner {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .chart-type-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-align: center;
+    line-height: 1.1;
+    flex-shrink: 0;
+  }
+
+  .badge-IAP { background: rgba(92,111,255,0.15); color: var(--accent); border: 1px solid rgba(92,111,255,0.3); }
+  .badge-DP  { background: rgba(6,214,160,0.12); color: var(--green); border: 1px solid rgba(6,214,160,0.25); }
+  .badge-STAR{ background: rgba(255,209,102,0.12); color: var(--yellow); border: 1px solid rgba(255,209,102,0.25); }
+  .badge-APD { background: rgba(255,92,135,0.12); color: var(--accent2); border: 1px solid rgba(255,92,135,0.25); }
+  .badge-HOT { background: rgba(255,92,135,0.12); color: var(--accent2); border: 1px solid rgba(255,92,135,0.25); }
+  .badge-MIN { background: rgba(255,209,102,0.12); color: var(--yellow); border: 1px solid rgba(255,209,102,0.25); }
+  .badge-OTH { background: rgba(86,88,112,0.3); color: var(--muted); border: 1px solid var(--border); }
+
+  .chart-info { flex: 1; min-width: 0; }
+
+  .chart-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .chart-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .chart-arrow {
+    color: var(--muted);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* PDF viewer modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 500;
+    flex-direction: column;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .modal-back {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .modal-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .modal-open-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 8px 14px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .modal-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: white;
+  }
+
+  .modal-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    gap: 16px;
+  }
+
+  .modal-loading p {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    margin: 0 20px 20px;
+    background: rgba(255,92,135,0.08);
+    border: 1px solid rgba(255,92,135,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .error-msg.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-title">CHARTS</div>
+    <div class="brand-sub">FAA Terminal Procedures</div>
+  </div>
+  <div style="margin-top:6px">
+    <span class="cycle-badge" id="cycleBadge">CYCLE LOADING...</span>
+  </div>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <span class="search-icon">✈</span>
+      <input 
+        class="search-input" 
+        id="airportInput" 
+        placeholder="ICAO / FAA ID" 
+        maxlength="4"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      >
+    </div>
+    <button class="search-btn" onclick="searchCharts()">PULL</button>
+  </div>
+</div>
+
+<div class="quick-wrap">
+  <div class="quick-label">Quick Access</div>
+  <div class="quick-pills" id="recentPills"></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- States -->
+<div class="state-msg" id="emptyState">
+  <div class="state-icon">🗺</div>
+  <div class="state-title">ENTER AN AIRPORT</div>
+  <div class="state-sub">Type ICAO or FAA ID (e.g. KSTL, KORD, KLAX)</div>
+</div>
+
+<div class="loading" id="loadingState">
+  <div class="spinner"></div>
+  <div class="loading-text">FETCHING CHARTS...</div>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<!-- Airport info + charts -->
+<div class="airport-info" id="airportInfo">
+  <div class="airport-info-top">
+    <div class="airport-icao" id="infoICAO"></div>
+    <div class="chart-count">
+      <strong id="infoCount">0</strong>
+      CHARTS
+    </div>
+  </div>
+  <div class="filter-tabs" id="filterTabs"></div>
+</div>
+
+<div class="charts-container" id="chartsContainer"></div>
+
+<!-- PDF Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-header">
+    <button class="modal-back" onclick="closeModal()">← BACK</button>
+    <div class="modal-title" id="modalTitle"></div>
+    <button class="modal-open-btn" id="modalOpenBtn">OPEN PDF</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-loading" id="modalLoading">
+      <div class="spinner"></div>
+      <p>LOADING CHART...</p>
+    </div>
+    <iframe id="modalFrame" onload="hideModalLoading()"></iframe>
+  </div>
+</div>
+
+<script>
+  // State
+  let allCharts = [];
+  let activeFilter = 'ALL';
+  let currentAirport = '';
+  const recents = JSON.parse(localStorage.getItem('chart_recents') || '[]');
+
+  // Render recent pills
+  function renderRecents() {
+    const el = document.getElementById('recentPills');
+    if (!recents.length) {
+      el.innerHTML = '<span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--muted)">none yet</span>';
+      return;
+    }
+    el.innerHTML = recents.map(a => 
+      `<button class="quick-pill" onclick="quickSearch('${a}')">${a}</button>`
+    ).join('');
+  }
+
+  function addRecent(icao) {
+    const idx = recents.indexOf(icao);
+    if (idx !== -1) recents.splice(idx, 1);
+    recents.unshift(icao);
+    if (recents.length > 6) recents.pop();
+    localStorage.setItem('chart_recents', JSON.stringify(recents));
+    renderRecents();
+  }
+
+  function quickSearch(icao) {
+    document.getElementById('airportInput').value = icao;
+    searchCharts();
+  }
+
+  // Classify chart type
+  function classifyChart(chartCode) {
+    const code = (chartCode || '').toUpperCase();
+    if (code.includes('IAP') || code.includes('ILS') || code.includes('RNAV') || code.includes('VOR') || code.includes('NDB') || code.includes('LOC') || code.includes('LDA') || code.includes('SDF') || code.includes('TACAN') || code.includes('GPS')) return 'IAP';
+    if (code.includes('DP') || code.includes('ODP')) return 'DP';
+    if (code.includes('STAR')) return 'STAR';
+    if (code.includes('APD') || code.includes('AIRPORT DIAGRAM')) return 'APD';
+    if (code.includes('HOT')) return 'HOT';
+    if (code.includes('MIN') || code.includes('TAKEOFF')) return 'MIN';
+    return 'OTH';
+  }
+
+  function classifyByName(name) {
+    const n = (name || '').toUpperCase();
+    if (n.includes('ILS') || n.includes('RNAV') || n.includes('VOR') || n.includes('NDB') || n.includes('LOC') || n.includes('LDA') || n.includes('SDF') || n.includes('GPS') || n.includes('TACAN') || n.includes('CONVERGING')) return 'IAP';
+    if (n.includes('DEPARTURE') || n.includes('ATIS') && n.includes('ODP')) return 'DP';
+    if (n.includes('ARRIVAL') && !n.includes('DEPARTURE')) return 'STAR';
+    if (n.includes('AIRPORT DIAGRAM') || n.includes('APD')) return 'APD';
+    if (n.includes('HOT SPOT')) return 'HOT';
+    if (n.includes('TAKEOFF') || n.includes('ALTERNATE')) return 'MIN';
+    return 'OTH';
+  }
+
+  // Category labels
+  const CAT_LABELS = {
+    IAP: 'Instrument Approaches',
+    DP: 'Departure Procedures',
+    STAR: 'Arrivals (STAR)',
+    APD: 'Airport Diagrams',
+    HOT: 'Hot Spots',
+    MIN: 'Minimums',
+    OTH: 'Other'
+  };
+
+  const CAT_ORDER = ['APD', 'IAP', 'STAR', 'DP', 'MIN', 'HOT', 'OTH'];
+
+  async function searchCharts() {
+    const raw = document.getElementById('airportInput').value.trim().toUpperCase();
+    if (!raw) return;
+
+    // AviationAPI accepts FAA IDs (K prefix US airports or plain 3-letter IATA)
+    currentAirport = raw;
+    setLoading(true);
+    hideError();
+    hideResults();
+
+    try {
+      // AviationAPI endpoint - no CORS issues, truly free
+      const url = `https://api.aviationapi.com/v1/charts?apt=${raw}`;
+      const res = await fetch(url);
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      const data = await res.json();
+
+      // The response is { "KXXX": [...charts] } or empty
+      const keys = Object.keys(data);
+      
+      if (!keys.length || !data[keys[0]] || !data[keys[0]].length) {
+        throw new Error('NO_CHARTS');
+      }
+
+      const charts = data[keys[0]];
+      allCharts = charts.map(c => ({
+        ...c,
+        _type: classifyByName(c.chart_name)
+      }));
+
+      addRecent(raw);
+      setLoading(false);
+      renderResults(raw, allCharts);
+
+    } catch (err) {
+      setLoading(false);
+      if (err.message === 'NO_CHARTS') {
+        showError(`No charts found for "${raw}". Try a different ICAO/FAA identifier.`);
+      } else {
+        showError(`Could not fetch charts for "${raw}". Check the airport ID and try again.`);
+      }
+    }
+  }
+
+  function renderResults(icao, charts) {
+    document.getElementById('infoICAO').textContent = icao;
+    document.getElementById('infoCount').textContent = charts.length;
+
+    // Build filter tabs
+    const types = ['ALL', ...CAT_ORDER.filter(t => charts.some(c => c._type === t))];
+    const tabsEl = document.getElementById('filterTabs');
+    tabsEl.innerHTML = types.map(t => 
+      `<button class="filter-tab ${t === 'ALL' ? 'active' : ''}" onclick="setFilter('${t}', this)">${t === 'ALL' ? `ALL (${charts.length})` : t}</button>`
+    ).join('');
+
+    document.getElementById('airportInfo').classList.add('active');
+    renderChartList(charts, 'ALL');
+  }
+
+  function setFilter(type, btn) {
+    activeFilter = type;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChartList(allCharts, type);
+  }
+
+  function renderChartList(charts, filter) {
+    const filtered = filter === 'ALL' ? charts : charts.filter(c => c._type === filter);
+    const container = document.getElementById('chartsContainer');
+
+    if (!filtered.length) {
+      container.innerHTML = '<div class="state-msg"><div class="state-icon">📄</div><div class="state-title">NONE IN CATEGORY</div></div>';
+      return;
+    }
+
+    // Group by type
+    const grouped = {};
+    filtered.forEach(c => {
+      if (!grouped[c._type]) grouped[c._type] = [];
+      grouped[c._type].push(c);
+    });
+
+    let html = '';
+    const orderedTypes = filter === 'ALL' ? CAT_ORDER.filter(t => grouped[t]) : [filter];
+
+    orderedTypes.forEach(type => {
+      if (!grouped[type]) return;
+      html += `<div class="category-label">${CAT_LABELS[type] || type}</div>`;
+      grouped[type].forEach(c => {
+        const safeUrl = encodeURIComponent(c.pdf_path || '');
+        const safeName = (c.chart_name || 'Unknown Chart').replace(/'/g, "\\'");
+        html += `
+          <a class="chart-card" onclick="openChart('${safeUrl}', '${safeName}')">
+            <div class="chart-card-inner">
+              <div class="chart-type-badge badge-${type}">${type}</div>
+              <div class="chart-info">
+                <div class="chart-name">${c.chart_name || 'Unknown'}</div>
+                <div class="chart-meta">${c.chart_code || ''} ${c.use_state ? '· ' + c.use_state : ''}</div>
+              </div>
+              <div class="chart-arrow">›</div>
+            </div>
+          </a>
+        `;
+      });
+    });
+
+    container.innerHTML = html;
+  }
+
+  function openChart(encodedUrl, name) {
+    const url = decodeURIComponent(encodedUrl);
+    if (!url) return;
+
+    document.getElementById('modalTitle').textContent = name;
+    document.getElementById('modalOpenBtn').onclick = () => window.open(url, '_blank');
+    document.getElementById('modalLoading').style.display = 'flex';
+    
+    const frame = document.getElementById('modalFrame');
+    // Use Google Docs viewer as PDF proxy for iOS (avoids PDF loading issues in iframe)
+    frame.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    
+    document.getElementById('modal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideModalLoading() {
+    document.getElementById('modalLoading').style.display = 'none';
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+    document.getElementById('modalFrame').src = '';
+    document.body.style.overflow = '';
+  }
+
+  function setLoading(on) {
+    document.getElementById('loadingState').classList.toggle('active', on);
+    document.getElementById('emptyState').style.display = on ? 'none' : '';
+    if (on) document.getElementById('emptyState').style.display = 'none';
+  }
+
+  function hideResults() {
+    document.getElementById('airportInfo').classList.remove('active');
+    document.getElementById('chartsContainer').innerHTML = '';
+    document.getElementById('emptyState').style.display = 'none';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('active');
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').classList.remove('active');
+  }
+
+  // Fetch current cycle info
+  async function fetchCycle() {
+    try {
+      const res = await fetch('https://api.aviationapi.com/v1/charts/date');
+      const data = await res.json();
+      const badge = document.getElementById('cycleBadge');
+      if (data && data.chart_cycle) {
+        badge.textContent = `CYCLE ${data.chart_cycle}`;
+      } else if (data && (data.effective || data.cycle)) {
+        badge.textContent = `CYCLE ${data.effective || data.cycle}`;
+      } else {
+        badge.textContent = 'FAA CHARTS';
+      }
+    } catch {
+      document.getElementById('cycleBadge').textContent = 'FAA CHARTS';
+    }
+  }
+
+  // Enter to search
+  document.getElementById('airportInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); searchCharts(); }
+  });
+
+  // Init
+  renderRecents();
+  fetchCycle();
+</script>
+</body>
+</html>
